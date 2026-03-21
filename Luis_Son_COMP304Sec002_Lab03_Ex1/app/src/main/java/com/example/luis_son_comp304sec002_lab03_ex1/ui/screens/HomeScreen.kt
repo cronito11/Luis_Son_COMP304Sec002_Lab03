@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.luis_son_comp304sec002_lab03_ex1.data.Product
 import com.example.luis_son_comp304sec002_lab03_ex1.ui.viewmodel.ProductViewModel
+import kotlin.text.contains
 
 // Main screen displaying all products
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
@@ -41,14 +42,13 @@ fun HomeScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredProducts = remember(products, searchQuery) {
-        val query = searchQuery.toIntOrNull()
+        val query = searchQuery.trim()
 
-        if (query == null) {
-            products
-        } else {
-            products.filter {
-                it.id == query
-            }
+        if (query.isEmpty()) return@remember products
+
+        products.filter { product: Product ->
+            product.id.toString().contains(query) ||
+                    product.name.contains(query) 
         }
     }
 
