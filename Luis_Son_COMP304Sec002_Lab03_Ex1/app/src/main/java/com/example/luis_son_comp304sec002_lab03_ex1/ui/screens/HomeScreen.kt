@@ -48,7 +48,7 @@ fun HomeScreen(
 
         products.filter { product: Product ->
             product.id.toString().contains(query) ||
-                    product.name.contains(query) 
+                    product.name.contains(query)
         }
     }
 
