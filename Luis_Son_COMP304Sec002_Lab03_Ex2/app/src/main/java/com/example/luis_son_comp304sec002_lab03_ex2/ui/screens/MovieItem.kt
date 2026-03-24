@@ -2,7 +2,6 @@ package com.example.luis_son_comp304sec002_lab03_ex2.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -32,14 +31,12 @@ fun MovieItem(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Product info column without clickable modifier
             Column(modifier = Modifier.weight(1f)) {
                 Text(movie.name, style = MaterialTheme.typography.titleMedium)
                 Text("$${movie.price}", style = MaterialTheme.typography.bodyMedium)
                 Text(movie.genre, style = MaterialTheme.typography.bodySmall)
             }
 
-            // Action buttons
             Row {
                 IconButton(
                     onClick = onToggleFavorite,
@@ -56,19 +53,12 @@ fun MovieItem(
 
                 IconButton(
                     onClick = {
-                        println("Edit clicked for product ${movie.id}")
+                        println("Edit clicked for movie ${movie.id}")
                         onEdit()
                     },
                     modifier = Modifier.testTag("edit_button")
                 ) {
-                    Icon(Icons.Default.Edit, "Edit")
-                }
-
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.testTag("delete_button")
-                ) {
-                    Icon(Icons.Default.Delete, "Delete")
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
                 }
             }
         }

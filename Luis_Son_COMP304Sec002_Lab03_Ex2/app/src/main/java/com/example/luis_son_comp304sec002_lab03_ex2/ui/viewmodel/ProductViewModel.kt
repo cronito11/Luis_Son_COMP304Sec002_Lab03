@@ -11,18 +11,20 @@ import com.example.luis_son_comp304sec002_lab03_ex2.data.MovieRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class ProductViewModel(application: Application) : AndroidViewModel(application) {
+
     private val repository: MovieRepository
     val allProducts: LiveData<List<Movie>>
     val favoriteProducts: LiveData<List<Movie>>
+
     private val _addProductSuccess = MutableStateFlow(false)
     val addProductSuccess: StateFlow<Boolean> = _addProductSuccess.asStateFlow()
 
-    // Form state handling
     data class AddMovieState(
         val id: String = "",
         val name: String = "",
@@ -46,59 +48,62 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun validateAndAddProduct() {
-        val state = _addMovieState.value
-        val errors = mutableListOf<String>()
+        viewModelScope.launch {
+            val state = _addMovieState.value
+            val errors = mutableListOf<String>()
 
-        // ID validation (3 digits, 101-999)
-        val id = state.id.toIntOrNull()
-        if (id == null || id !in 101..999) errors.add("Invalid ID (101-999)")
+            val id = state.id.trim().toIntOrNull()
+            if (id == null || id !in 101..999) errors.add("ID must be between 101 and 999")
 
-        // Price validation
-        val price = state.price.toDoubleOrNull()
-        if (price == null || price <= 0) errors.add("Price must be positive")
+            if (state.name.isBlank()) errors.add("Title is required")
 
-        // Duration validation
-        val duration = state.duration
-        if (duration <= 0) errors.add("duration must be more than 0")
+            if (state.nameDirector.isBlank()) errors.add("Director is required")
 
-        // Date validation
-        val currentDate = LocalDate.now()
-        val releaseDate = try {
-            LocalDate.parse(state.dateRelease)
-        } catch (e: Exception) {
-            null
-        }
-        if (releaseDate == null || releaseDate.isBefore(currentDate)) {
-            errors.add("Invalid delivery date")
-        }
+            val price = state.price.trim().toDoubleOrNull()
+            if (price == null || price <= 0) errors.add("Price must be a positive number")
 
-        // Category validation
-        if (state.genre !in listOf("Family", "Comedy", "Thriller", "Action")) {
-            errors.add("Select a category")
-        }
+            val currentDate = LocalDate.now()
+            val releaseDate = try { LocalDate.parse(state.dateRelease) } catch (e: Exception) { null }
+            if (releaseDate == null || releaseDate.isBefore(currentDate)) {
+                errors.add("Release date must be today or in the future")
+            }
 
-        if (errors.isEmpty()) {
-            insert(
+            if (state.duration <= 0) errors.add("Duration must be greater than 0")
+
+            if (state.genre.isBlank()) errors.add("Please select a genre")
+
+            if (errors.isNotEmpty()) {
+                _addMovieState.update { it.copy(errors = errors) }
+                _addProductSuccess.value = false
+                return@launch
+            }
+
+            val existing = repository.movies.first()
+            if (existing.any { it.id == id }) {
+                _addMovieState.update {
+                    it.copy(errors = listOf("A movie with ID $id already exists"))
+                }
+                _addProductSuccess.value = false
+                return@launch
+            }
+
+            repository.addMovie(
                 Movie(
-                    id = id!!,
-                    name = state.name,
-                    price = price!!,
-                    dateRelease = state.dateRelease,
-                    duration = duration,
-                    genre = state.genre,
-                    nameDirector = state.nameDirector,
-                    isFavorite = state.isFavorite
+                    id           = id!!,
+                    name         = state.name.trim(),
+                    nameDirector = state.nameDirector.trim(),
+                    price        = price!!,
+                    dateRelease  = state.dateRelease,
+                    duration     = state.duration,
+                    genre        = state.genre,
+                    isFavorite   = state.isFavorite
                 )
             )
             _addMovieState.update { it.copy(errors = emptyList()) }
-            _addProductSuccess.value = true  // Set success to true
-        } else {
-            _addMovieState.update { it.copy(errors = errors) }
-            _addProductSuccess.value = false  // Reset success on validation failure
+            _addProductSuccess.value = true
         }
     }
 
-    // Update form fields
     fun updateFormState(
         id: String? = null,
         name: String? = null,
@@ -111,31 +116,29 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     ) {
         _addMovieState.update { current ->
             current.copy(
-                id = id ?: current.id,
-                name = name ?: current.name,
-                price = price ?: current.price,
-                dateRelease = dateRelease ?: current.dateRelease,
-                genre = genre ?: current.genre,
-                duration =  duration?: current.duration,
-                nameDirector = nameDirector?: current.nameDirector,
-                isFavorite = isFavorite ?: current.isFavorite
+                id           = id           ?: current.id,
+                name         = name         ?: current.name,
+                price        = price        ?: current.price,
+                dateRelease  = dateRelease  ?: current.dateRelease,
+                genre        = genre        ?: current.genre,
+                duration     = duration     ?: current.duration,
+                nameDirector = nameDirector ?: current.nameDirector,
+                isFavorite   = isFavorite   ?: current.isFavorite
             )
         }
     }
 
     fun toggleFavorite(movie: Movie) {
-        val updatedProduct = movie.copy(isFavorite = !movie.isFavorite)
         viewModelScope.launch {
-            repository.updateMovie(updatedProduct)
+            repository.updateMovie(movie.copy(isFavorite = !movie.isFavorite))
         }
     }
 
     fun resetSuccessState() {
         _addProductSuccess.value = false
+        _addMovieState.value = AddMovieState()
     }
 
-    // CRUD operations
-    private fun insert(movie: Movie) = viewModelScope.launch { repository.addMovie(movie) }
     fun update(movie: Movie) = viewModelScope.launch { repository.updateMovie(movie) }
     fun delete(movie: Movie) = viewModelScope.launch { repository.deleteMovie(movie) }
 }

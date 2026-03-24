@@ -8,13 +8,15 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.luis_son_comp304sec002_lab03_ex2.ui.screens.AddMovieScreen
+import com.example.luis_son_comp304sec002_lab03_ex2.ui.screens.DeleteMovieScreen
+import com.example.luis_son_comp304sec002_lab03_ex2.ui.screens.EditMovieScreen
+import com.example.luis_son_comp304sec002_lab03_ex2.ui.screens.FavoriteMoviesScreen
 import com.example.luis_son_comp304sec002_lab03_ex2.ui.screens.HomeScreen
 
-// Sets up navigation routes for the app
 @Composable
 fun AppNavigation(navController: NavHostController, windowSizeClass: WindowSizeClass) {
     val isExpanded = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
-    // Start on home_detail if expanded, otherwise home
     val startDestination = if (isExpanded) "home_detail" else "home"
 
     NavHost(
@@ -26,6 +28,22 @@ fun AppNavigation(navController: NavHostController, windowSizeClass: WindowSizeC
         }
         composable("home_detail") {
             HomeScreen(navController, windowSizeClass = windowSizeClass)
+        }
+        composable("add") {
+            AddMovieScreen(navController)
+        }
+        composable(
+            route = "edit/{movieId}",
+            arguments = listOf(navArgument("movieId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val movieId = backStackEntry.arguments?.getInt("movieId")
+            EditMovieScreen(navController = navController, movieId = movieId)
+        }
+        composable("delete") {
+            DeleteMovieScreen(navController)
+        }
+        composable("favorites") {
+            FavoriteMoviesScreen(navController)
         }
     }
 }
